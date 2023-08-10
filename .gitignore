@@ -1,2 +1,5 @@
 venv
 .DS_Store
+**/*.jpg
+**/*.mp4
+Model
