@@ -2,4 +2,6 @@ venv
 .DS_Store
 **/*.jpg
 **/*.mp4
+**/*.wav
+**/*.m4a
 Model
