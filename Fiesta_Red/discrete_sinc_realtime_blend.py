@@ -7,10 +7,13 @@ import os
 import time
 from pygame import midi
 
+# INITIAL CONDITIONS / CONSTANTS
 CAMERA_ON = False
 SINC_Y_OFFSET = 0
+SINC_X_OFFSET = 0
 FRAME_WIDTH = 1280
 FRAME_HEIGHT = 720
+JOYSTICK_SPEED = 0.2
 
 midi.init()
 default_id = midi.get_default_input_id()
@@ -24,18 +27,18 @@ cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
 cv2.setWindowProperty('frame', cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_GUI_EXPANDED)
 
 
-def create_frame(iterator, video, y_offset = SINC_Y_OFFSET, scale = 1000, frames_per_period = 100):
+def create_sinc_frame(iterator, video, y_offset = SINC_Y_OFFSET, x_offset = SINC_X_OFFSET, scale = 1000, frames_per_period = 100):
 
     # Constants:
-    x_px = 1280
-    y_px = 720
+    x_px = FRAME_WIDTH
+    y_px = FRAME_HEIGHT
     img = 0 * np.ones(shape = (y_px, x_px))
     img_rgb = np.dstack((img, img, img))
     tau = 1
     T = 5
     impulse_thickness = 5
-    y_displacement = int(y_px / 2) + SINC_Y_OFFSET
-    x_displacement = int(x_px / 2)
+    y_displacement = int(y_px / 2) + y_offset
+    x_displacement = int(x_px / 2) + x_offset
     impulse_count = 50
     impulse_spacing = 10
     
@@ -59,7 +62,7 @@ def create_frame(iterator, video, y_offset = SINC_Y_OFFSET, scale = 1000, frames
                     x = x_displacement + t
                     if an > 0:
                         
-                        if y > 720 or x > 1280:
+                        if y >= 720 or x >= 1280:
                             pass
                         else:
                             img_rgb[y, x][0] = 255
@@ -67,7 +70,7 @@ def create_frame(iterator, video, y_offset = SINC_Y_OFFSET, scale = 1000, frames
                             img_rgb[y, x][2] = 255
                         
                     else:
-                        if y > 720 or x > 1280:
+                        if y >= 720 or x >= 1280:
                             pass
                         else:
                             img_rgb[y, x][0] = 255
@@ -83,7 +86,7 @@ def create_frame(iterator, video, y_offset = SINC_Y_OFFSET, scale = 1000, frames
                     if an > 0:
                         y = c + y_displacement
                         x = x_displacement + (impulse_spacing * n + t)
-                        if y > 720 or x > 1280:
+                        if y >= 720 or x >= 1280:
                             pass
                         else:
                             img_rgb[y, x][0] = 255
@@ -92,7 +95,7 @@ def create_frame(iterator, video, y_offset = SINC_Y_OFFSET, scale = 1000, frames
                     else:
                         y = y_displacement - c
                         x = x_displacement + (impulse_spacing * n + t)
-                        if y > 720 or x > 1280:
+                        if y >= 720 or x >= 1280:
                             pass
                         else:
                             img_rgb[y, x][0] = 255
@@ -108,24 +111,47 @@ def create_frame(iterator, video, y_offset = SINC_Y_OFFSET, scale = 1000, frames
     cv2.waitKey(int(1/60 * 1000)) # 60 fps
 
 i = 1
+previous_dial_offset = int(127/2)
 while True:
     if midi_input.poll():
-        pad = midi_input.read(num_events = 16)[0][0][1]
+        input = midi_input.read(num_events = 16)
+        pad = input[0][0][1]
+
+        dial_offset = input[0][0][2]
+
+        print(input[0][0][2])
+        print()
         if pad == 48 and CAMERA_ON:  # camera is currently not on and pad1 will turn it on
             CAMERA_ON = False
         elif pad == 48 and not CAMERA_ON:  # camerA is on and pad1 will disable the camera
             CAMERA_ON = True
-        else:
-            SINC_Y_OFFSET = pad
+        elif pad == 1:
+            try:
+                if dial_offset > previous_dial_offset:
+                    SINC_X_OFFSET += int(dial_offset * JOYSTICK_SPEED) 
+                else:
+                    SINC_X_OFFSET -= int(dial_offset * JOYSTICK_SPEED) 
+
+                previous_dial_offset = dial_offset
+
+            except IndexError:
+                pass
+            
+        elif pad == 2:
+            try:
+                SINC_Y_OFFSET += int(dial_offset * JOYSTICK_SPEED) - int(127 / 2)
+            except IndexError:
+                pass
+    
 
     if CAMERA_ON:
         ret, frame = vid.read()
-        create_frame(i, video = frame, y_offset=SINC_Y_OFFSET, scale = 720 * (i % 100) / 100, frames_per_period = 25)
+        create_sinc_frame(i, video = frame, y_offset = SINC_Y_OFFSET, scale = 720 * (i % 100) / 100, frames_per_period = 25)
         i += 1
     else:
         frame = np.ones((FRAME_HEIGHT, FRAME_WIDTH))
         frame = np.dstack((frame, frame, frame))
-        create_frame(i, video = frame, y_offset=SINC_Y_OFFSET, scale = 720 * (i % 100) / 100, frames_per_period = 25)
+        create_sinc_frame(i, video = frame, y_offset = SINC_Y_OFFSET, x_offset = SINC_X_OFFSET, scale = 720 * (i % 100) / 100, frames_per_period = 25)
         i += 1
 
 
