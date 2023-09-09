@@ -139,7 +139,13 @@ while True:
             
         elif pad == 2:
             try:
-                SINC_Y_OFFSET += int(dial_offset * JOYSTICK_SPEED) - int(127 / 2)
+                if dial_offset > previous_dial_offset:
+                    SINC_Y_OFFSET += int(dial_offset * JOYSTICK_SPEED) 
+                else:
+                    SINC_Y_OFFSET -= int(dial_offset * JOYSTICK_SPEED) 
+
+                previous_dial_offset = dial_offset
+
             except IndexError:
                 pass
     
