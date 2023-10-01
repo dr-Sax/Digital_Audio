@@ -17,7 +17,7 @@ JOYSTICK_SPEED = 0.2
 
 midi.init()
 default_id = midi.get_default_input_id()
-midi_input = midi.Input(device_id=default_id)
+midi_input = midi.Input(device_id = default_id)
 
 # define a video capture object
 vid = cv2.VideoCapture(0)
@@ -112,19 +112,24 @@ def create_sinc_frame(iterator, video, y_offset = SINC_Y_OFFSET, x_offset = SINC
 
 i = 1
 previous_dial_offset = int(127/2)
+last_pressed_drum_pad = None
+
 while True:
     if midi_input.poll():
         input = midi_input.read(num_events = 16)
         pad = input[0][0][1]
+        if pad >= 44 and pad <= 51:
+            last_pressed_drum_pad = pad
 
         dial_offset = input[0][0][2]
 
-        print(input[0][0][2])
-        print()
-        if pad == 48 and CAMERA_ON:  # camera is currently not on and pad1 will turn it on
+        
+        if last_pressed_drum_pad == 48 and CAMERA_ON:  # camera is currently not on and pad1 will turn it on
             CAMERA_ON = False
-        elif pad == 48 and not CAMERA_ON:  # camerA is on and pad1 will disable the camera
+            
+        elif last_pressed_drum_pad == 48 and not CAMERA_ON:  # camerA is on and pad1 will disable the camera
             CAMERA_ON = True
+
         elif pad == 1:
             try:
                 if dial_offset > previous_dial_offset:
